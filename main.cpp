@@ -9,6 +9,7 @@ int main(){
     int warningCount = 0;
     int errorCount = 0;
     int totalLines = 0;
+    int unclassifiedCount = 0;
     if(file.is_open()){
         while (getline(file,line)){
             cout<<line<<endl;
@@ -16,11 +17,14 @@ int main(){
             if(line.find("[INFO]") != string::npos){
                 infoCount++;
             }
-            if(line.find("[WARNING]") != string::npos){
+            else if(line.find("[WARNING]") != string::npos){
                 warningCount++;
             }
-            if(line.find("[ERROR]") != string::npos){
+            else if(line.find("[ERROR]") != string::npos){
                 errorCount++;
+            }
+            else{
+                unclassifiedCount++;
             }
         }
         file.close();
@@ -28,8 +32,9 @@ int main(){
         cout << "INFO entries  :"<<infoCount << endl;
         cout<< "WARNING entries  :"<<warningCount << endl;
         cout<< "ERROR entries  :"<< errorCount << endl;
+        cout<< "Unclassified entries  :"<< unclassifiedCount << endl;
         cout<< "Total log lines  :"<< totalLines << endl;
-        cout<<"Total entries :"<< infoCount + warningCount + errorCount << endl;
+        cout<<"Classified entries :"<< infoCount + warningCount + errorCount << endl;
     }else{
         cout<<"Unable to open log file !"<<endl;
     }
