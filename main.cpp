@@ -14,6 +14,9 @@ int main(){
         while (getline(file,line)){
             cout<<line<<endl;
             totalLines++;
+            if (line.find_first_not_of("\t\r\n") == string::npos) {
+            continue;
+            }
             if(line.find("[INFO]") != string::npos){
                 infoCount++;
             }
