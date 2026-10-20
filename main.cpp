@@ -8,9 +8,11 @@ int main(){
     int infoCount = 0;
     int warningCount = 0;
     int errorCount = 0;
+    int totalLines = 0;
     if(file.is_open()){
         while (getline(file,line)){
             cout<<line<<endl;
+            totalLines++;
             if(line.find("[INFO]") != string::npos){
                 infoCount++;
             }
@@ -26,6 +28,7 @@ int main(){
         cout << "INFO entries  :"<<infoCount << endl;
         cout<< "WARNING entries  :"<<warningCount << endl;
         cout<< "ERROR entries  :"<< errorCount << endl;
+        cout<< "Total log lines  :"<< totalLines << endl;
         cout<<"Total entries :"<< infoCount + warningCount + errorCount << endl;
     }else{
         cout<<"Unable to open log file !"<<endl;
