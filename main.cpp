@@ -48,10 +48,17 @@ int main(){
             }
         }
         file.close();
-        cout<< "\n========= IP Address Analysis ==========" << endl;
+        cout << "\n========== IP Address Analysis ==========" << endl;
+
         for(auto entry : ipCount){
-            cout << "IP Address :"<<entry.first 
-            << " | Failed Attempts :" <<entry.second <<endl;
+        cout << "IP Address: " << entry.first
+         << " | Failed Attempts: " << entry.second << endl;
+
+        if(entry.second >= 3){
+        cout << "WARNING: Repeated failed login attempts detected!" << endl;
+        cout << "Source IP: " << entry.first << endl;
+        cout << "Attempts: " << entry.second << endl;
+            }
         }
         cout << "\n========== SentinelLog Analysis ==========" << endl;
         cout << "INFO entries  :"<<infoCount << endl;

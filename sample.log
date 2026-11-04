@@ -5,3 +5,5 @@
 [WARNING] Failed login attempt from 192.168.2.10
 [INFO] User logged out
 [DEBUG] Connection initialized
+[WARNING] Failed login attempt from 192.168.1.10
+[WARNING] Failed login attempt from 192.168.1.10
