@@ -1,8 +1,10 @@
+#include<map>
 #include<iostream>
 #include<fstream>
 #include<string>
 using namespace std;
 int main(){
+    map<string, int> ipCount;
     ifstream file("sample.log");
     string line;
     int infoCount = 0;
@@ -10,6 +12,7 @@ int main(){
     int errorCount = 0;
     int debugCount = 0;
     int failedLoginCount = 0;
+    string ipAddress = " ";
     int totalLines = 0;
     int unclassifiedCount = 0;
     if(file.is_open()){
@@ -37,8 +40,19 @@ int main(){
             if(line.find("Failed login attempt") != string::npos){
                 failedLoginCount++;
             }
+            size_t ipPosition = line.find("from ");
+            if (ipPosition !=string::npos){
+                ipAddress = line.substr(ipPosition + 5);
+                cout << "Detected IP Address: "<<ipAddress <<endl;
+            ipCount[ipAddress]++;
+            }
         }
         file.close();
+        cout<< "\n========= IP Address Analysis ==========" << endl;
+        for(auto entry : ipCount){
+            cout << "IP Address :"<<entry.first 
+            << " | Failed Attempts :" <<entry.second <<endl;
+        }
         cout << "\n========== SentinelLog Analysis ==========" << endl;
         cout << "INFO entries  :"<<infoCount << endl;
         cout<< "WARNING entries  :"<<warningCount << endl;

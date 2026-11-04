@@ -1,7 +1,7 @@
 [INFO] Application started
-[WARNING] Failed login attempt
+[WARNING] Failed login attempt from 192.168.1.10
 [ERROR] File access denied
-[WARNING] Failed login attempt
-[WARNING] Failed login attempt
+[WARNING] Failed login attempt from 192.168.1.20
+[WARNING] Failed login attempt from 192.168.2.10
 [INFO] User logged out
 [DEBUG] Connection initialized
