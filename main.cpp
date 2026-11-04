@@ -54,10 +54,19 @@ int main(){
         cout << "IP Address: " << entry.first
          << " | Failed Attempts: " << entry.second << endl;
 
-        if(entry.second >= 3){
-        cout << "WARNING: Repeated failed login attempts detected!" << endl;
-        cout << "Source IP: " << entry.first << endl;
-        cout << "Attempts: " << entry.second << endl;
+        if(entry.second >= 5){
+        cout << "Risk Level: HIGH" << endl;
+            }
+        else if(entry.second >= 3){
+        cout << "Risk Level: MEDIUM" << endl;
+            }
+        else{
+        cout << "Risk Level: LOW" << endl;
+            }
+            if(entry.second >= 3){
+                cout << "WARNING: Repeated failed login attempts detected!" <<endl;
+                cout << "Source IP: "<<entry.first <<endl;
+                cout << "Attempts: "<<entry.second << endl;
             }
         }
         cout << "\n========== SentinelLog Analysis ==========" << endl;
