@@ -9,6 +9,7 @@ int main(){
     int warningCount = 0;
     int errorCount = 0;
     int debugCount = 0;
+    int failedLoginCount = 0;
     int totalLines = 0;
     int unclassifiedCount = 0;
     if(file.is_open()){
@@ -33,6 +34,9 @@ int main(){
             else{
                 unclassifiedCount++;
             }
+            if(line.find("Failed login attempt") != string::npos){
+                failedLoginCount++;
+            }
         }
         file.close();
         cout << "\n========== SentinelLog Analysis ==========" << endl;
@@ -40,6 +44,10 @@ int main(){
         cout<< "WARNING entries  :"<<warningCount << endl;
         cout<< "ERROR entries  :"<< errorCount << endl;
         cout<< "DEBUG entries  :"<< debugCount << endl;
+        cout<< "Failed login attempts  :"<< failedLoginCount << endl;
+        if(failedLoginCount >=3){
+            cout << "ALERT : Possible suspicious login activity detected!"<< endl;
+        }
         cout<< "Unclassified entries  :"<< unclassifiedCount << endl;
         cout<< "Total log lines  :"<< totalLines << endl;
         cout<<"Classified entries :"<< infoCount + warningCount + errorCount + debugCount << endl;
