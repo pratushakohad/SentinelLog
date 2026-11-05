@@ -48,12 +48,21 @@ int main(){
             }
         }
         file.close();
+        int suspiciousIPCount = 0;
+        int highestAttempts = 0;
+        string highestRiskIP = "None";
+        
         cout << "\n========== IP Address Analysis ==========" << endl;
-
         for(auto entry : ipCount){
         cout << "IP Address: " << entry.first
          << " | Failed Attempts: " << entry.second << endl;
-
+        if(entry.second >=3){
+            suspiciousIPCount++;
+        }
+        if(entry.second > highestAttempts){
+            highestAttempts = entry.second;
+            highestRiskIP = entry.first;
+        }
         if(entry.second >= 5){
         cout << "Risk Level: HIGH" << endl;
             }
@@ -69,6 +78,18 @@ int main(){
                 cout << "Attempts: "<<entry.second << endl;
             }
         }
+        cout<< "\n============ SECURITY SUMMARY =============\n";
+        cout<<"Total Failed Login Attempts : "<<failedLoginCount<<endl;
+        cout<<"Suspicious IP Addresses :"<<suspiciousIPCount<<endl;
+        cout<<"Highest Risk IP :"<<highestRiskIP<<endl;
+        cout<<"Highest Failed Attempts :"<<highestAttempts<<endl;
+        if(suspiciousIPCount>0){
+            cout<<"Overall Security Status : ALERT"<<endl;
+        }
+        else{
+            cout<<"Overall Security Status : NORMAL"<<endl;
+        }
+
         cout << "\n========== SentinelLog Analysis ==========" << endl;
         cout << "INFO entries  :"<<infoCount << endl;
         cout<< "WARNING entries  :"<<warningCount << endl;
