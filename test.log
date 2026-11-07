@@ -1,0 +1,28 @@
+[2026-11-05 09:00:10] [INFO] Application started
+[2026-11-05 09:05:20] [WARNING] Failed login attempt from 192.168.1.10
+[2026-11-05 09:10:30] [ERROR] File access denied
+[2026-11-05 09:15:40] [WARNING] Failed login attempt from 192.168.1.20
+[2026-11-05 09:20:50] [WARNING] Failed login attempt from 192.168.2.10
+[2026-11-05 09:25:00] [INFO] User logged out
+[2026-11-05 09:30:10] [DEBUG] Connection initialized
+[2026-11-05 10:00:15] [WARNING] Failed login attempt from 192.168.1.10
+[2026-11-05 10:05:25] [WARNING] Failed login attempt from 192.168.1.10
+[2026-11-05 10:10:35] [WARNING] Failed login attempt from 192.168.1.10
+[2026-11-05 10:15:45] [WARNING] Failed login attempt from 192.168.1.10
+[WARNING] Failed login attempt from 192.168.1.30
+[2026-AB-05 09:00:10] [WARNING] Failed login attempt from 192.168.1.40
+[2026-02-30 10:00:00] [WARNING] Failed login attempt from 192.168.1.50
+[2026-11-06 23:55:00] [WARNING] Failed login attempt from 192.168.1.60
+[2026-11-07 00:00:00] [WARNING] Failed login attempt from 192.168.1.60
+[2026-11-07 00:05:00] [WARNING] Failed login attempt from 192.168.1.60
+[2026-11-07 10:10:00] [WARNING] Failed login attempt from 192.168.1.70
+[2026-11-07 10:00:00] [WARNING] Failed login attempt from 192.168.1.70
+[2026-11-07 10:05:00] [WARNING] Failed login attempt from 192.168.1.70
+[2026-AB-07 10:00:00] [WARNING] Failed login attempt from 192.168.1.80
+[2026-02-30 10:05:00] [WARNING] Failed login attempt from 192.168.1.80
+[2026-11-07 25:10:00] [WARNING] Failed login attempt from 192.168.1.80
+[2026-13-07 10:00:00] [WARNING] Failed login attempt from 192.168.1.90
+[2026-02-30 10:05:00] [WARNING] Failed login attempt from 192.168.1.90
+[2026-AB-07 10:10:00] [WARNING] Failed login attempt from 192.168.1.90
+[2024-02-29 10:00:00] [WARNING] Failed login attempt from 192.168.1.100
+[2025-02-29 10:00:00] [WARNING] Failed login attempt from 192.168.1.110

@@ -1,12 +1,37 @@
-#include<map>
-#include<iostream>
-#include<fstream>
-#include<string>
+#include <map>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+#include<cctype>
+#include<algorithm>
 using namespace std;
-int main(){
+long long daysFromDate(int year, int month, int day)
+{
+    year -= (month <= 2);
+
+    int era = (year >= 0 ? year : year - 399) / 400;
+    unsigned int yearOfEra = year - era * 400;
+
+    unsigned int dayOfYear =
+        (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5 + day - 1;
+
+    unsigned int dayOfEra =
+        yearOfEra * 365 + yearOfEra / 4 -
+        yearOfEra / 100 + dayOfYear;
+
+    return era * 146097LL + dayOfEra;
+}
+int main()
+{
     map<string, int> ipCount;
+    map<string, vector<string>> ipTimestamps;
+    map<string, vector<long long>> ipTimeSeconds;
     ifstream file("sample.log");
     string line;
+    string timestamp;
+    bool validTimestamp = false;
+    bool validFormat = true;
     int infoCount = 0;
     int warningCount = 0;
     int errorCount = 0;
@@ -15,95 +40,242 @@ int main(){
     string ipAddress = " ";
     int totalLines = 0;
     int unclassifiedCount = 0;
-    if(file.is_open()){
-        while (getline(file,line)){
-            cout<<line<<endl;
+    if (file.is_open())
+    {
+        while (getline(file, line))
+        {
             totalLines++;
-            if (line.find_first_not_of(" \t\r\n") == string::npos) {
-            continue;
+            if (line.find_first_not_of(" \t\r\n") == string::npos)
+            {
+                continue;
             }
-            if(line.find("[INFO]") != string::npos){
+            validFormat = true;
+            if (line.length() >= 21 && line[0] == '[' && line[20] == ']')
+            {
+                timestamp = line.substr(1, 19);
+                validTimestamp = true;
+            }
+            else
+            {
+                timestamp = "Unknown";
+                validTimestamp = false;
+            }
+            if (validTimestamp)
+{
+    for (int i = 0; i < timestamp.length(); i++)
+    {
+        if (i == 4 || i == 7)
+        {
+            if (timestamp[i] != '-')
+                validFormat = false;
+        }
+        else if (i == 10)
+        {
+            if (timestamp[i] != ' ')
+                validFormat = false;
+        }
+        else if (i == 13 || i == 16)
+        {
+            if (timestamp[i] != ':')
+                validFormat = false;
+        }
+        else
+        {
+            if (!isdigit(static_cast<unsigned char>(timestamp[i])))
+                validFormat = false;
+        }
+    }
+}
+if (!validFormat)
+{
+    validTimestamp = false;
+    timestamp = "Unknown";
+}
+if (validTimestamp && validFormat)
+{
+    int month = stoi(timestamp.substr(5, 2));
+    int day = stoi(timestamp.substr(8, 2));
+    int hour = stoi(timestamp.substr(11, 2));
+    int minute = stoi(timestamp.substr(14, 2));
+    int second = stoi(timestamp.substr(17, 2));
+
+    if (month < 1 || month > 12 ||
+        day < 1 || day > 31 ||
+        hour < 0 || hour > 23 ||
+        minute < 0 || minute > 59 ||
+        second < 0 || second > 59)
+    {
+        validTimestamp = false;
+        timestamp = "Unknown";
+    }
+    if (validTimestamp)
+{
+    int year = stoi(timestamp.substr(0, 4));
+
+    bool leapYear = (year % 400 == 0) ||
+                    (year % 4 == 0 && year % 100 != 0);
+
+    int daysInMonth[] = {
+        31, leapYear ? 29 : 28, 31, 30,
+        31, 30, 31, 31, 30, 31, 30, 31
+    };
+
+    if (year < 1 || day > daysInMonth[month - 1])
+    {
+        validTimestamp = false;
+        timestamp = "Unknown";
+    }
+}
+}
+            long long totalSeconds = -1;
+
+            if (validTimestamp)
+            {
+                int hour = stoi(timestamp.substr(11, 2));
+                int minute = stoi(timestamp.substr(14, 2));
+                int second = stoi(timestamp.substr(17, 2));
+               int dateYear = stoi(timestamp.substr(0, 4));
+int dateMonth = stoi(timestamp.substr(5, 2));
+int dateDay = stoi(timestamp.substr(8, 2));
+
+totalSeconds = (daysFromDate(dateYear, dateMonth, dateDay) * 86400LL)
+               + (hour * 3600LL)
+               + (minute * 60LL)
+               + second;
+            }
+            if (line.find("[INFO]") != string::npos)
+            {
                 infoCount++;
             }
-            else if(line.find("[WARNING]") != string::npos){
+            else if (line.find("[WARNING]") != string::npos)
+            {
                 warningCount++;
             }
-            else if(line.find("[ERROR]") != string::npos){
+            else if (line.find("[ERROR]") != string::npos)
+            {
                 errorCount++;
             }
-            else if(line.find("[DEBUG]") != string::npos){
+            else if (line.find("[DEBUG]") != string::npos)
+            {
                 debugCount++;
             }
-            else{
+            else
+            {
                 unclassifiedCount++;
             }
-            if(line.find("Failed login attempt") != string::npos){
+            if (line.find("Failed login attempt") != string::npos)
+            {
                 failedLoginCount++;
             }
             size_t ipPosition = line.find("from ");
-            if (ipPosition !=string::npos){
+            if (ipPosition != string::npos)
+            {
                 ipAddress = line.substr(ipPosition + 5);
-                cout << "Detected IP Address: "<<ipAddress <<endl;
-            ipCount[ipAddress]++;
+                ipCount[ipAddress]++;
+                if (validTimestamp)
+                {
+                    ipTimeSeconds[ipAddress].push_back(totalSeconds);
+                    ipTimestamps[ipAddress].push_back(timestamp);
+                }
             }
         }
-        file.close();
-        int suspiciousIPCount = 0;
-        int highestAttempts = 0;
-        string highestRiskIP = "None";
-        
-        cout << "\n========== IP Address Analysis ==========" << endl;
-        for(auto entry : ipCount){
-        cout << "IP Address: " << entry.first
-         << " | Failed Attempts: " << entry.second << endl;
-        if(entry.second >=3){
-            suspiciousIPCount++;
-        }
-        if(entry.second > highestAttempts){
-            highestAttempts = entry.second;
-            highestRiskIP = entry.first;
-        }
-        if(entry.second >= 5){
-        cout << "Risk Level: HIGH" << endl;
-            }
-        else if(entry.second >= 3){
-        cout << "Risk Level: MEDIUM" << endl;
-            }
-        else{
-        cout << "Risk Level: LOW" << endl;
-            }
-            if(entry.second >= 3){
-                cout << "WARNING: Repeated failed login attempts detected!" <<endl;
-                cout << "Source IP: "<<entry.first <<endl;
-                cout << "Attempts: "<<entry.second << endl;
-            }
-        }
-        cout<< "\n============ SECURITY SUMMARY =============\n";
-        cout<<"Total Failed Login Attempts : "<<failedLoginCount<<endl;
-        cout<<"Suspicious IP Addresses :"<<suspiciousIPCount<<endl;
-        cout<<"Highest Risk IP :"<<highestRiskIP<<endl;
-        cout<<"Highest Failed Attempts :"<<highestAttempts<<endl;
-        if(suspiciousIPCount>0){
-            cout<<"Overall Security Status : ALERT"<<endl;
-        }
-        else{
-            cout<<"Overall Security Status : NORMAL"<<endl;
-        }
+            file.close();
+            for (auto entry : ipTimeSeconds)
+            {
+                vector<long long> times = entry.second;
+                sort(times.begin(), times.end());
+                for (int i = 0; i < times.size(); i++)
+                {
+                    int attemptsWithinWindow = 1;
 
-        cout << "\n========== SentinelLog Analysis ==========" << endl;
-        cout << "INFO entries  :"<<infoCount << endl;
-        cout<< "WARNING entries  :"<<warningCount << endl;
-        cout<< "ERROR entries  :"<< errorCount << endl;
-        cout<< "DEBUG entries  :"<< debugCount << endl;
-        cout<< "Failed login attempts  :"<< failedLoginCount << endl;
-        if(failedLoginCount >=3){
-            cout << "ALERT : Possible suspicious login activity detected!"<< endl;
+                    for (int j = i + 1; j < times.size(); j++)
+                    {
+                        if (times[j] - times[i] <= 900)
+                        {
+                            attemptsWithinWindow++;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    if (attemptsWithinWindow >= 3)
+                    {
+                        cout << "ALERT: IP " << entry.first
+     << " made 3 or more failed login attempts within 15 minutes!"
+     << endl;
+                        break;
+                    }
+                }
+            }
+            int suspiciousIPCount = 0;
+            int highestAttempts = 0;
+            string highestRiskIP = "None";
+
+            cout << "\n========== IP Address Analysis ==========" << endl;
+            for (auto entry : ipCount)
+            {
+                cout << "IP Address: " << entry.first
+                     << " | Failed Attempts: " << entry.second << endl;
+                if (entry.second >= 3)
+                {
+                    suspiciousIPCount++;
+                }
+                if (entry.second > highestAttempts)
+                {
+                    highestAttempts = entry.second;
+                    highestRiskIP = entry.first;
+                }
+                if (entry.second >= 5)
+                {
+                    cout << "Risk Level: HIGH" << endl;
+                }
+                else if (entry.second >= 3)
+                {
+                    cout << "Risk Level: MEDIUM" << endl;
+                }
+                else
+                {
+                    cout << "Risk Level: LOW" << endl;
+                }
+                if (entry.second >= 3)
+                {
+                    cout << "WARNING: Repeated failed login attempts detected!" << endl;
+                    cout << "Source IP: " << entry.first << endl;
+                    cout << "Attempts: " << entry.second << endl;
+                }
+            }
+            cout << "\n============ SECURITY SUMMARY =============\n";
+            cout << "Total Failed Login Attempts : " << failedLoginCount << endl;
+            cout << "Suspicious IP Addresses :" << suspiciousIPCount << endl;
+            cout << "Highest Risk IP :" << highestRiskIP << endl;
+            cout << "Highest Failed Attempts :" << highestAttempts << endl;
+            if (suspiciousIPCount > 0)
+            {
+                cout << "Overall Security Status : ALERT" << endl;
+            }
+            else
+            {
+                cout << "Overall Security Status : NORMAL" << endl;
+            }
+
+            cout << "\n========== SentinelLog Analysis ==========" << endl;
+            cout << "INFO entries  :" << infoCount << endl;
+            cout << "WARNING entries  :" << warningCount << endl;
+            cout << "ERROR entries  :" << errorCount << endl;
+            cout << "DEBUG entries  :" << debugCount << endl;
+            cout << "Failed login attempts  :" << failedLoginCount << endl;
+            if (failedLoginCount >= 3)
+            {
+                cout << "ALERT : Possible suspicious login activity detected!" << endl;
+            }
+            cout << "Unclassified entries  :" << unclassifiedCount << endl;
+            cout << "Total log lines  :" << totalLines << endl;
+            cout << "Classified entries :" << infoCount + warningCount + errorCount + debugCount << endl;
         }
-        cout<< "Unclassified entries  :"<< unclassifiedCount << endl;
-        cout<< "Total log lines  :"<< totalLines << endl;
-        cout<<"Classified entries :"<< infoCount + warningCount + errorCount + debugCount << endl;
-    }else{
-        cout<<"Unable to open log file !"<<endl;
+         else
+        {
+            cout << "Unable to open log file !" << endl;
+        }
+        return 0;
     }
-    return 0;
-}

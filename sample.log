@@ -1,11 +1,13 @@
-[INFO] Application started
-[WARNING] Failed login attempt from 192.168.1.10
-[ERROR] File access denied
-[WARNING] Failed login attempt from 192.168.1.20
-[WARNING] Failed login attempt from 192.168.2.10
-[INFO] User logged out
-[DEBUG] Connection initialized
-[WARNING] Failed login attempt from 192.168.1.10
-[WARNING] Failed login attempt from 192.168.1.10
-[WARNING] Failed login attempt from 192.168.1.10
-[WARNING] Failed login attempt from 192.168.1.10
+[2026-11-07 09:00:00] [INFO] Application started
+[2026-11-07 09:01:00] [DEBUG] Security monitoring initialized
+[2026-11-07 09:05:00] [WARNING] Failed login attempt from 192.168.1.10
+[2026-11-07 09:08:00] [WARNING] Failed login attempt from 192.168.1.10
+[2026-11-07 09:11:00] [WARNING] Failed login attempt from 192.168.1.10
+[2026-11-07 09:13:00] [WARNING] Failed login attempt from 192.168.1.10
+[2026-11-07 09:14:00] [WARNING] Failed login attempt from 192.168.1.10
+[2026-11-07 10:00:00] [WARNING] Failed login attempt from 192.168.1.60
+[2026-11-07 10:05:00] [WARNING] Failed login attempt from 192.168.1.60
+[2026-11-07 10:10:00] [WARNING] Failed login attempt from 192.168.1.60
+[2026-11-07 11:00:00] [WARNING] Failed login attempt from 192.168.1.20
+[2026-11-07 11:30:00] [ERROR] Database connection failed
+[2026-11-07 12:00:00] [INFO] Application running normally
