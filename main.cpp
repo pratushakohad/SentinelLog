@@ -3,9 +3,16 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include<cctype>
-#include<algorithm>
+#include <cctype>
+#include <algorithm>
 using namespace std;
+struct LogEntry
+{
+    string timestamp;
+    string level;
+    string message;
+    bool validTimestamp;
+};
 long long daysFromDate(int year, int month, int day)
 {
     year -= (month <= 2);
@@ -44,6 +51,7 @@ int main()
     {
         while (getline(file, line))
         {
+            LogEntry  entry;
             totalLines++;
             if (line.find_first_not_of(" \t\r\n") == string::npos)
             {
@@ -52,14 +60,22 @@ int main()
             validFormat = true;
             if (line.length() >= 21 && line[0] == '[' && line[20] == ']')
             {
-                timestamp = line.substr(1, 19);
-                validTimestamp = true;
+                entry.timestamp = line.substr(1, 19);
+                entry.validTimestamp = true;
+            }
+            else if(line.length()>=20 && line[10] == 'T' && line[19] == ' ')
+            {
+                entry.timestamp = line.substr(0, 19);
+                entry.timestamp[10] = ' ';
+                entry.validTimestamp = true;
             }
             else
             {
-                timestamp = "Unknown";
-                validTimestamp = false;
+                entry.timestamp = "Unknown";
+                entry.validTimestamp = false;
             }
+            timestamp = entry.timestamp;
+            validTimestamp = entry.validTimestamp;
             if (validTimestamp)
 {
     for (int i = 0; i < timestamp.length(); i++)
@@ -91,6 +107,8 @@ if (!validFormat)
     validTimestamp = false;
     timestamp = "Unknown";
 }
+entry.timestamp = timestamp;
+entry.validTimestamp = validTimestamp;
 if (validTimestamp && validFormat)
 {
     int month = stoi(timestamp.substr(5, 2));
@@ -127,6 +145,8 @@ if (validTimestamp && validFormat)
     }
 }
 }
+            entry.timestamp = timestamp;
+            entry.validTimestamp = validTimestamp;
             long long totalSeconds = -1;
 
             if (validTimestamp)
@@ -143,20 +163,26 @@ totalSeconds = (daysFromDate(dateYear, dateMonth, dateDay) * 86400LL)
                + (minute * 60LL)
                + second;
             }
-            if (line.find("[INFO]") != string::npos)
+            entry.message = line;
+            entry.level = "Unknown";
+            if (line.find("[INFO]") != string::npos || line.find(" INFO ") != string::npos)
             {
+                entry.level = "INFO";
                 infoCount++;
             }
-            else if (line.find("[WARNING]") != string::npos)
+            else if (line.find("[WARNING]") != string::npos || line.find(" WARNING ") != string::npos)
             {
+                entry.level = "WARNING";
                 warningCount++;
             }
-            else if (line.find("[ERROR]") != string::npos)
+            else if (line.find("[ERROR]") != string::npos || line.find(" ERROR ") != string::npos)
             {
+                entry.level = "ERROR";
                 errorCount++;
             }
-            else if (line.find("[DEBUG]") != string::npos)
+            else if (line.find("[DEBUG]") != string::npos || line.find(" DEBUG ") != string::npos)
             {
+                entry.level = "DEBUG";
                 debugCount++;
             }
             else
