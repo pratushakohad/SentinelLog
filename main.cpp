@@ -13,6 +13,82 @@ struct LogEntry
     string message;
     bool validTimestamp;
 };
+string detectLogLevel(const string& line)
+{
+    if (line.find("[INFO]") != string::npos ||
+        line.find(" INFO ") != string::npos)
+    {
+        return "INFO";
+    }
+    else if (line.find("[WARNING]") != string::npos ||
+             line.find(" WARNING ") != string::npos)
+    {
+        return "WARNING";
+    }
+    else if (line.find("[ERROR]") != string::npos ||
+             line.find(" ERROR ") != string::npos)
+    {
+        return "ERROR";
+    }
+    else if (line.find("[DEBUG]") != string::npos ||
+             line.find(" DEBUG ") != string::npos)
+    {
+        return "DEBUG";
+    }
+
+    return "Unknown";
+}
+string detectTimestamp(const string& line)
+{
+    if (line.length() >= 21 && line[0] == '[' && line[20] == ']')
+    {
+        return line.substr(1, 19);
+    }
+    else if (line.length() >= 20 && line[10] == 'T' && line[19] == ' ')
+    {
+        string timestamp = line.substr(0, 19);
+        timestamp[10] = ' ';
+        return timestamp;
+    }
+
+    return "Unknown";
+}
+string extractMessage(const string& line)
+{
+    size_t messageStart;
+
+    if (line.length() >= 21 && line[0] == '[' && line[20] == ']')
+    {
+        size_t position = line.find("] ", 20);
+
+        if (position == string::npos)
+        {
+            return line;
+        }
+
+        messageStart = position + 2;
+    }
+    else if (line.length() >= 20 && line[10] == 'T' && line[19] == ' ')
+    {
+        messageStart = 20;
+    }
+    else
+    {
+        return line;
+    }
+
+    if (detectLogLevel(line) != "Unknown")
+    {
+        size_t levelEnd = line.find(" ", messageStart);
+
+        if (levelEnd != string::npos)
+        {
+            return line.substr(levelEnd + 1);
+        }
+    }
+
+    return line.substr(messageStart);
+}
 long long daysFromDate(int year, int month, int day)
 {
     year -= (month <= 2);
@@ -58,22 +134,16 @@ int main()
                 continue;
             }
             validFormat = true;
-            if (line.length() >= 21 && line[0] == '[' && line[20] == ']')
-            {
-                entry.timestamp = line.substr(1, 19);
-                entry.validTimestamp = true;
-            }
-            else if(line.length()>=20 && line[10] == 'T' && line[19] == ' ')
-            {
-                entry.timestamp = line.substr(0, 19);
-                entry.timestamp[10] = ' ';
-                entry.validTimestamp = true;
-            }
-            else
-            {
-                entry.timestamp = "Unknown";
-                entry.validTimestamp = false;
-            }
+            entry.timestamp = detectTimestamp(line);
+
+if (entry.timestamp != "Unknown")
+{
+    entry.validTimestamp = true;
+}
+else
+{
+    entry.validTimestamp = false;
+}
             timestamp = entry.timestamp;
             validTimestamp = entry.validTimestamp;
             if (validTimestamp)
@@ -163,32 +233,29 @@ totalSeconds = (daysFromDate(dateYear, dateMonth, dateDay) * 86400LL)
                + (minute * 60LL)
                + second;
             }
-            entry.message = line;
-            entry.level = "Unknown";
-            if (line.find("[INFO]") != string::npos || line.find(" INFO ") != string::npos)
-            {
-                entry.level = "INFO";
-                infoCount++;
-            }
-            else if (line.find("[WARNING]") != string::npos || line.find(" WARNING ") != string::npos)
-            {
-                entry.level = "WARNING";
-                warningCount++;
-            }
-            else if (line.find("[ERROR]") != string::npos || line.find(" ERROR ") != string::npos)
-            {
-                entry.level = "ERROR";
-                errorCount++;
-            }
-            else if (line.find("[DEBUG]") != string::npos || line.find(" DEBUG ") != string::npos)
-            {
-                entry.level = "DEBUG";
-                debugCount++;
-            }
-            else
-            {
-                unclassifiedCount++;
-            }
+           entry.message = extractMessage(line);
+entry.level = detectLogLevel(line);
+
+if (entry.level == "INFO")
+{
+    infoCount++;
+}
+else if (entry.level == "WARNING")
+{
+    warningCount++;
+}
+else if (entry.level == "ERROR")
+{
+    errorCount++;
+}
+else if (entry.level == "DEBUG")
+{
+    debugCount++;
+}
+else
+{
+    unclassifiedCount++;
+}
             if (line.find("Failed login attempt") != string::npos)
             {
                 failedLoginCount++;
