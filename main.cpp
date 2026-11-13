@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <sstream>
 #include <ctime>
-#include<stdexcept>
+#include <stdexcept>
 using namespace std;
 
 struct LogEntry
@@ -15,6 +15,7 @@ struct LogEntry
     string timestamp;
     string level;
     string message;
+    string rawLine;
     string hostname;
     string processName;
     int processID;
@@ -101,6 +102,7 @@ string extractMessage(const string &line)
 LogEntry parseLogLine(const string &line)
 {
     LogEntry entry;
+    entry.rawLine = line;
     entry.timestamp = "Unknown";
     entry.level = "Unknown";
     entry.message = "";
@@ -118,6 +120,7 @@ LogEntry parseLogLine(const string &line)
 LogEntry parseSyslogLine(const string &line)
 {
     LogEntry entry;
+    entry.rawLine = line;
     entry.timestamp = "Unknown";
     entry.level = "Unknown";
     entry.hostname = "";
@@ -285,7 +288,35 @@ LogEntry parseSyslogLine(const string &line)
     }
     return entry;
 }
+void displayLogEntry(const LogEntry &entry)
+{
+    cout << "\n========== LOG ENTRY ==========" << endl;
 
+    cout << "Timestamp: " << entry.timestamp << endl;
+
+    cout << "Raw Log Entry: " << entry.rawLine << endl;
+
+    if (entry.validSyslog)
+    {
+        cout << "Log Format: Syslog" << endl;
+        cout << "Log Level: " << entry.level << endl;
+        cout << "Hostname: " << entry.hostname << endl;
+        cout << "Process Name: " << entry.processName << endl;
+        cout << "Process ID: " << entry.processID << endl;
+        cout << "Message: " << entry.message << endl;
+    }
+        else
+    {
+        cout << "Log Format: Regular" << endl;
+        cout << "Log Level: " << entry.level << endl;
+        cout << "Message: " << entry.message << endl;
+    }
+    cout << "Valid Syslog: "
+         << (entry.validSyslog ? "Yes" : "No") << endl;
+
+    cout << "Valid Timestamp: "
+         << (entry.validTimestamp ? "Yes" : "No") << endl;
+}
 long long daysFromDate(int year, int month, int day)
 {
     year -= (month <= 2);
@@ -475,6 +506,7 @@ int main()
                 entry.message = extractMessage(line);
                 entry.level = detectLogLevel(line);
             }
+            displayLogEntry(entry);
             if (entry.level == "INFO")
             {
                 infoCount++;
@@ -609,7 +641,7 @@ int main()
         cout << "ERROR entries  :" << errorCount << endl;
         cout << "DEBUG entries  :" << debugCount << endl;
         cout << "Failed login attempts  :" << failedLoginCount << endl;
-               if (suspiciousIPCount > 0)
+        if (suspiciousIPCount > 0)
         {
             cout << "ALERT : Possible suspicious login activity detected!" << endl;
         }
