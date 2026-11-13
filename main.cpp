@@ -375,11 +375,17 @@ int main()
 
                     string month = (monthNumber < 10 ? "0" : "") + to_string(monthNumber);
 
+                    string day = syslogTimestamp.substr(4, 2);
+
+                    if (day[0] == ' ')
+                    {
+                        day = "0" + day.substr(1);
+                    }
+
                     entry.timestamp = to_string(currentYear) + "-" +
                                       month + "-" +
-                                      syslogTimestamp.substr(4, 2) + " " +
+                                      day + " " +
                                       syslogTimestamp.substr(7, 8);
-
                     entry.validTimestamp = true;
                 }
             }

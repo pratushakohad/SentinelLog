@@ -7,3 +7,4 @@
 <34>Nov 12 09:40:20 server sshd[abc]: Failed password for admin from 192.168.1.150
 <34>Nov 12 09:33:20 server sshd[1234]: Failed password for admin from 192.168.1.100
 <34>Nov 12 09:34:20 server sshd[1234]: Failed password for admin from 192.168.1.100
+<34>Nov  3 09:15:20 server sshd[1234]: Failed password for admin from 192.168.1.200
