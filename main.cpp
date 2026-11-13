@@ -611,7 +611,7 @@ int main()
         cout << "ERROR entries  :" << errorCount << endl;
         cout << "DEBUG entries  :" << debugCount << endl;
         cout << "Failed login attempts  :" << failedLoginCount << endl;
-        if (failedLoginCount >= 3)
+               if (suspiciousIPCount > 0)
         {
             cout << "ALERT : Possible suspicious login activity detected!" << endl;
         }
