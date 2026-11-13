@@ -283,14 +283,6 @@ LogEntry parseSyslogLine(const string &line)
 
         entry.message = message;
     }
-    cout << "Syslog Priority: " << priority << endl;
-    cout << "Syslog Severity Number: " << severity << endl;
-    cout << "Syslog Severity Level: " << entry.level << endl;
-    cout << "Syslog Timestamp: " << entry.timestamp << endl;
-    cout << "Syslog Hostname: " << entry.hostname << endl;
-    cout << "Syslog Process Name: " << entry.processName << endl;
-    cout << "Syslog Process ID: " << entry.processID << endl;
-    cout << "Syslog Message: " << entry.message << endl;
     return entry;
 }
 
