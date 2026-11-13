@@ -288,9 +288,10 @@ LogEntry parseSyslogLine(const string &line)
     }
     return entry;
 }
-void displayLogEntry(const LogEntry &entry)
+void displayLogEntry(const LogEntry &entry, int entryNumber)
 {
-    cout << "\n========== LOG ENTRY ==========" << endl;
+    cout << "\n========== LOG ENTRY #" << entryNumber
+     << " ==========" << endl;
 
     cout << "Timestamp: " << entry.timestamp << endl;
 
@@ -353,6 +354,7 @@ int main()
     int unclassifiedCount = 0;
     if (file.is_open())
     {
+        int entryNumber = 0;
         while (getline(file, line))
         {
             totalLines++;
@@ -360,6 +362,7 @@ int main()
             {
                 continue;
             }
+            entryNumber++;
             validFormat = true;
             LogEntry entry;
 
@@ -506,7 +509,7 @@ int main()
                 entry.message = extractMessage(line);
                 entry.level = detectLogLevel(line);
             }
-            displayLogEntry(entry);
+            displayLogEntry(entry, entryNumber);
             if (entry.level == "INFO")
             {
                 infoCount++;
