@@ -22,6 +22,24 @@ struct LogEntry
     bool validTimestamp;
     bool validSyslog;
 };
+struct AnalysisResult
+{
+    vector<LogEntry> entries;
+    map<string, int> ipCount;
+    map<string, vector<long long>> ipTimeSeconds;
+    map<string, vector<string>> ipTimestamps;
+    int infoCount = 0;
+    int warningCount = 0;
+    int errorCount = 0;
+    int debugCount = 0;
+    int failedLoginCount = 0;
+    int totalLines = 0;
+    int unclassifiedCount = 0;
+
+    int suspiciousIPCount = 0;
+    int highestAttempts = 0;
+    string highestRiskIP = "None";
+};
 string detectLogLevel(const string &line)
 {
     if (line.find("[INFO]") != string::npos ||
@@ -291,7 +309,7 @@ LogEntry parseSyslogLine(const string &line)
 void displayLogEntry(const LogEntry &entry, int entryNumber)
 {
     cout << "\n========== LOG ENTRY #" << entryNumber
-     << " ==========" << endl;
+         << " ==========" << endl;
 
     cout << "Timestamp: " << entry.timestamp << endl;
 
@@ -306,7 +324,7 @@ void displayLogEntry(const LogEntry &entry, int entryNumber)
         cout << "Process ID: " << entry.processID << endl;
         cout << "Message: " << entry.message << endl;
     }
-        else
+    else
     {
         cout << "Log Format: Regular" << endl;
         cout << "Log Level: " << entry.level << endl;
@@ -334,327 +352,371 @@ long long daysFromDate(int year, int month, int day)
 
     return era * 146097LL + dayOfEra;
 }
-int main()
+
+void analyzeIPAddresses(AnalysisResult &result)
 {
-    map<string, int> ipCount;
-    map<string, vector<string>> ipTimestamps;
-    map<string, vector<long long>> ipTimeSeconds;
-    ifstream file("sample.log");
+    result.suspiciousIPCount = 0;
+    result.highestAttempts = 0;
+    result.highestRiskIP = "None";
+
+    for (const auto &entry : result.ipCount)
+    {
+        if (entry.second >= 3)
+        {
+            result.suspiciousIPCount++;
+        }
+
+        if (entry.second > result.highestAttempts)
+        {
+            result.highestAttempts = entry.second;
+            result.highestRiskIP = entry.first;
+        }
+    }
+}
+
+string determineSecurityStatus(const AnalysisResult &result)
+{
+    if (result.suspiciousIPCount > 0)
+    {
+        return "ALERT";
+    }
+
+    return "NORMAL";
+}
+
+AnalysisResult analyzeLogFile(const string &filename)
+{
+    AnalysisResult result;
+
+    ifstream file(filename);
+
+    if (!file.is_open())
+    {
+        cout << "Unable to open log file!" << endl;
+        return result;
+    }
     string line;
     string timestamp;
     bool validTimestamp = false;
     bool validFormat = true;
-    int infoCount = 0;
-    int warningCount = 0;
-    int errorCount = 0;
-    int debugCount = 0;
-    int failedLoginCount = 0;
     string ipAddress = " ";
-    int totalLines = 0;
-    int unclassifiedCount = 0;
-    if (file.is_open())
+
+    while (getline(file, line))
     {
-        int entryNumber = 0;
-        while (getline(file, line))
+        result.totalLines++;
+
+        if (line.find_first_not_of(" \t\r\n") == string::npos)
         {
-            totalLines++;
-            if (line.find_first_not_of(" \t\r\n") == string::npos)
-            {
-                continue;
-            }
-            entryNumber++;
-            validFormat = true;
-            LogEntry entry;
+            continue;
+        }
 
-            if (!line.empty() && line[0] == '<')
-            {
-                entry = parseSyslogLine(line);
-            }
-            else
-            {
-                entry = parseLogLine(line);
-            }
-            if (!line.empty() && line[0] == '<')
-            {
-                string syslogTimestamp = entry.timestamp;
+        validFormat = true;
 
-                string months[] = {
-                    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+        LogEntry entry;
 
-                int monthNumber = 0;
+        if (!line.empty() && line[0] == '<')
+        {
+            entry = parseSyslogLine(line);
+        }
+        else
+        {
+            entry = parseLogLine(line);
+        }
+        if (!line.empty() && line[0] == '<')
+        {
+            string syslogTimestamp = entry.timestamp;
 
-                for (int i = 0; i < 12; i++)
+            string months[] = {
+                "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+            int monthNumber = 0;
+
+            for (int i = 0; i < 12; i++)
+            {
+                if (syslogTimestamp.substr(0, 3) == months[i])
                 {
-                    if (syslogTimestamp.substr(0, 3) == months[i])
-                    {
-                        monthNumber = i + 1;
-                        break;
-                    }
-                }
-
-                if (monthNumber != 0 && syslogTimestamp.length() == 15)
-                {
-                    time_t now = time(nullptr);
-                    tm *currentTime = localtime(&now);
-                    int currentYear = currentTime->tm_year + 1900;
-
-                    string month = (monthNumber < 10 ? "0" : "") + to_string(monthNumber);
-
-                    string day = syslogTimestamp.substr(4, 2);
-
-                    if (day[0] == ' ')
-                    {
-                        day = "0" + day.substr(1);
-                    }
-
-                    entry.timestamp = to_string(currentYear) + "-" +
-                                      month + "-" +
-                                      day + " " +
-                                      syslogTimestamp.substr(7, 8);
-                    entry.validTimestamp = true;
+                    monthNumber = i + 1;
+                    break;
                 }
             }
-            timestamp = entry.timestamp;
-            validTimestamp = entry.validTimestamp;
-            if (validTimestamp)
+
+            if (monthNumber != 0 && syslogTimestamp.length() == 15)
             {
-                for (int i = 0; i < timestamp.length(); i++)
+                time_t now = time(nullptr);
+                tm *currentTime = localtime(&now);
+                int currentYear = currentTime->tm_year + 1900;
+
+                string month = (monthNumber < 10 ? "0" : "") + to_string(monthNumber);
+                string day = syslogTimestamp.substr(4, 2);
+
+                if (day[0] == ' ')
                 {
-                    if (i == 4 || i == 7)
-                    {
-                        if (timestamp[i] != '-')
-                            validFormat = false;
-                    }
-                    else if (i == 10)
-                    {
-                        if (timestamp[i] != ' ')
-                            validFormat = false;
-                    }
-                    else if (i == 13 || i == 16)
-                    {
-                        if (timestamp[i] != ':')
-                            validFormat = false;
-                    }
-                    else
-                    {
-                        if (!isdigit(static_cast<unsigned char>(timestamp[i])))
-                            validFormat = false;
-                    }
+                    day = "0" + day.substr(1);
+                }
+
+                entry.timestamp = to_string(currentYear) + "-" +
+                                  month + "-" + day + " " +
+                                  syslogTimestamp.substr(7, 8);
+
+                entry.validTimestamp = true;
+            }
+        }
+
+        timestamp = entry.timestamp;
+        validTimestamp = entry.validTimestamp;
+
+        if (validTimestamp)
+        {
+            for (int i = 0; i < timestamp.length(); i++)
+            {
+                if (i == 4 || i == 7)
+                {
+                    if (timestamp[i] != '-')
+                        validFormat = false;
+                }
+                else if (i == 10)
+                {
+                    if (timestamp[i] != ' ')
+                        validFormat = false;
+                }
+                else if (i == 13 || i == 16)
+                {
+                    if (timestamp[i] != ':')
+                        validFormat = false;
+                }
+                else
+                {
+                    if (!isdigit(static_cast<unsigned char>(timestamp[i])))
+                        validFormat = false;
                 }
             }
-            if (!validFormat)
+        }
+
+        if (!validFormat)
+        {
+            validTimestamp = false;
+            timestamp = "Unknown";
+        }
+
+        entry.timestamp = timestamp;
+        entry.validTimestamp = validTimestamp;
+
+        if (validTimestamp && validFormat)
+        {
+            int month = stoi(timestamp.substr(5, 2));
+            int day = stoi(timestamp.substr(8, 2));
+            int hour = stoi(timestamp.substr(11, 2));
+            int minute = stoi(timestamp.substr(14, 2));
+            int second = stoi(timestamp.substr(17, 2));
+
+            if (month < 1 || month > 12 ||
+                day < 1 || day > 31 ||
+                hour < 0 || hour > 23 ||
+                minute < 0 || minute > 59 ||
+                second < 0 || second > 59)
             {
                 validTimestamp = false;
                 timestamp = "Unknown";
             }
-            entry.timestamp = timestamp;
-            entry.validTimestamp = validTimestamp;
-            if (validTimestamp && validFormat)
-            {
-                int month = stoi(timestamp.substr(5, 2));
-                int day = stoi(timestamp.substr(8, 2));
-                int hour = stoi(timestamp.substr(11, 2));
-                int minute = stoi(timestamp.substr(14, 2));
-                int second = stoi(timestamp.substr(17, 2));
 
-                if (month < 1 || month > 12 ||
-                    day < 1 || day > 31 ||
-                    hour < 0 || hour > 23 ||
-                    minute < 0 || minute > 59 ||
-                    second < 0 || second > 59)
+            if (validTimestamp)
+            {
+                int year = stoi(timestamp.substr(0, 4));
+
+                bool leapYear = (year % 400 == 0) ||
+                                (year % 4 == 0 && year % 100 != 0);
+
+                int daysInMonth[] = {
+                    31, leapYear ? 29 : 28, 31, 30,
+                    31, 30, 31, 31, 30, 31, 30, 31};
+
+                if (year < 1 || day > daysInMonth[month - 1])
                 {
                     validTimestamp = false;
                     timestamp = "Unknown";
                 }
-                if (validTimestamp)
-                {
-                    int year = stoi(timestamp.substr(0, 4));
-
-                    bool leapYear = (year % 400 == 0) ||
-                                    (year % 4 == 0 && year % 100 != 0);
-
-                    int daysInMonth[] = {
-                        31, leapYear ? 29 : 28, 31, 30,
-                        31, 30, 31, 31, 30, 31, 30, 31};
-
-                    if (year < 1 || day > daysInMonth[month - 1])
-                    {
-                        validTimestamp = false;
-                        timestamp = "Unknown";
-                    }
-                }
-            }
-            entry.timestamp = timestamp;
-            entry.validTimestamp = validTimestamp;
-            long long totalSeconds = -1;
-
-            if (validTimestamp)
-            {
-                int hour = stoi(timestamp.substr(11, 2));
-                int minute = stoi(timestamp.substr(14, 2));
-                int second = stoi(timestamp.substr(17, 2));
-                int dateYear = stoi(timestamp.substr(0, 4));
-                int dateMonth = stoi(timestamp.substr(5, 2));
-                int dateDay = stoi(timestamp.substr(8, 2));
-
-                totalSeconds = (daysFromDate(dateYear, dateMonth, dateDay) * 86400LL) + (hour * 3600LL) + (minute * 60LL) + second;
-            }
-            if (line[0] == '<')
-            {
-                // Syslog message and level are already extracted.
-            }
-            else
-            {
-                entry.message = extractMessage(line);
-                entry.level = detectLogLevel(line);
-            }
-            displayLogEntry(entry, entryNumber);
-            if (entry.level == "INFO")
-            {
-                infoCount++;
-            }
-            else if (entry.level == "WARNING")
-            {
-                warningCount++;
-            }
-            else if (entry.level == "ERROR")
-            {
-                errorCount++;
-            }
-            else if (entry.level == "DEBUG")
-            {
-                debugCount++;
-            }
-            else
-            {
-                unclassifiedCount++;
-            }
-            bool failedLogin =
-                (line.find("Failed login attempt") != string::npos ||
-                 line.find("Failed password") != string::npos);
-
-            if (line[0] == '<' && !entry.validSyslog)
-            {
-                failedLogin = false;
-            }
-
-            if (failedLogin)
-            {
-                failedLoginCount++;
-
-                size_t ipPosition = line.find("from ");
-
-                if (ipPosition != string::npos)
-                {
-                    ipAddress = line.substr(ipPosition + 5);
-                    ipCount[ipAddress]++;
-
-                    if (validTimestamp)
-                    {
-                        ipTimeSeconds[ipAddress].push_back(totalSeconds);
-                        ipTimestamps[ipAddress].push_back(timestamp);
-                    }
-                }
             }
         }
-        file.close();
-        for (auto entry : ipTimeSeconds)
-        {
-            vector<long long> times = entry.second;
-            sort(times.begin(), times.end());
-            for (int i = 0; i < times.size(); i++)
-            {
-                int attemptsWithinWindow = 1;
 
-                for (int j = i + 1; j < times.size(); j++)
-                {
-                    if (times[j] - times[i] <= 900)
-                    {
-                        attemptsWithinWindow++;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                if (attemptsWithinWindow >= 3)
-                {
-                    cout << "ALERT: IP " << entry.first
-                         << " made 3 or more failed login attempts within 15 minutes!"
-                         << endl;
-                    break;
-                }
-            }
-        }
-        int suspiciousIPCount = 0;
-        int highestAttempts = 0;
-        string highestRiskIP = "None";
+        entry.timestamp = timestamp;
+        entry.validTimestamp = validTimestamp;
 
-        cout << "\n========== IP Address Analysis ==========" << endl;
-        for (auto entry : ipCount)
+        long long totalSeconds = -1;
+
+        if (validTimestamp)
         {
-            cout << "IP Address: " << entry.first
-                 << " | Failed Attempts: " << entry.second << endl;
-            if (entry.second >= 3)
-            {
-                suspiciousIPCount++;
-            }
-            if (entry.second > highestAttempts)
-            {
-                highestAttempts = entry.second;
-                highestRiskIP = entry.first;
-            }
-            if (entry.second >= 5)
-            {
-                cout << "Risk Level: HIGH" << endl;
-            }
-            else if (entry.second >= 3)
-            {
-                cout << "Risk Level: MEDIUM" << endl;
-            }
-            else
-            {
-                cout << "Risk Level: LOW" << endl;
-            }
-            if (entry.second >= 3)
-            {
-                cout << "WARNING: Repeated failed login attempts detected!" << endl;
-                cout << "Source IP: " << entry.first << endl;
-                cout << "Attempts: " << entry.second << endl;
-            }
+            int hour = stoi(timestamp.substr(11, 2));
+            int minute = stoi(timestamp.substr(14, 2));
+            int second = stoi(timestamp.substr(17, 2));
+            int dateYear = stoi(timestamp.substr(0, 4));
+            int dateMonth = stoi(timestamp.substr(5, 2));
+            int dateDay = stoi(timestamp.substr(8, 2));
+
+            totalSeconds = (daysFromDate(dateYear, dateMonth, dateDay) * 86400LL) + (hour * 3600LL) + (minute * 60LL) + second;
         }
-        cout << "\n============ SECURITY SUMMARY =============\n";
-        cout << "Total Failed Login Attempts : " << failedLoginCount << endl;
-        cout << "Suspicious IP Addresses :" << suspiciousIPCount << endl;
-        cout << "Highest Risk IP :" << highestRiskIP << endl;
-        cout << "Highest Failed Attempts :" << highestAttempts << endl;
-        if (suspiciousIPCount > 0)
+
+        if (line[0] == '<')
         {
-            cout << "Overall Security Status : ALERT" << endl;
+            // Syslog message and level are already extracted.
         }
         else
         {
-            cout << "Overall Security Status : NORMAL" << endl;
+            entry.message = extractMessage(line);
+            entry.level = detectLogLevel(line);
         }
 
-        cout << "\n========== SentinelLog Analysis ==========" << endl;
-        cout << "INFO entries  :" << infoCount << endl;
-        cout << "WARNING entries  :" << warningCount << endl;
-        cout << "ERROR entries  :" << errorCount << endl;
-        cout << "DEBUG entries  :" << debugCount << endl;
-        cout << "Failed login attempts  :" << failedLoginCount << endl;
-        if (suspiciousIPCount > 0)
+        result.entries.push_back(entry);
+
+        if (entry.level == "INFO")
         {
-            cout << "ALERT : Possible suspicious login activity detected!" << endl;
+            result.infoCount++;
         }
-        cout << "Unclassified entries  :" << unclassifiedCount << endl;
-        cout << "Total log lines  :" << totalLines << endl;
-        cout << "Classified entries :" << infoCount + warningCount + errorCount + debugCount << endl;
+        else if (entry.level == "WARNING")
+        {
+            result.warningCount++;
+        }
+        else if (entry.level == "ERROR")
+        {
+            result.errorCount++;
+        }
+        else if (entry.level == "DEBUG")
+        {
+            result.debugCount++;
+        }
+        else
+        {
+            result.unclassifiedCount++;
+        }
+
+        bool failedLogin =
+            (line.find("Failed login attempt") != string::npos ||
+             line.find("Failed password") != string::npos);
+
+        if (line[0] == '<' && !entry.validSyslog)
+        {
+            failedLogin = false;
+        }
+
+        if (failedLogin)
+        {
+            result.failedLoginCount++;
+
+            size_t ipPosition = line.find("from ");
+
+            if (ipPosition != string::npos)
+            {
+                ipAddress = line.substr(ipPosition + 5);
+                result.ipCount[ipAddress]++;
+
+                if (validTimestamp)
+                {
+                    result.ipTimeSeconds[ipAddress].push_back(totalSeconds);
+                    result.ipTimestamps[ipAddress].push_back(timestamp);
+                }
+            }
+        }
     }
-    else
+    file.close();
+
+    analyzeIPAddresses(result);
+
+    return result;
+}
+
+int main()
+{
+    AnalysisResult result = analyzeLogFile("sample.log");
+
+    for (int i = 0; i < result.entries.size(); i++)
     {
-        cout << "Unable to open log file !" << endl;
+        displayLogEntry(result.entries[i], i + 1);
     }
+
+    for (auto entry : result.ipTimeSeconds)
+    {
+        vector<long long> times = entry.second;
+        sort(times.begin(), times.end());
+
+        for (int i = 0; i < times.size(); i++)
+        {
+            int attemptsWithinWindow = 1;
+
+            for (int j = i + 1; j < times.size(); j++)
+            {
+                if (times[j] - times[i] <= 900)
+                {
+                    attemptsWithinWindow++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (attemptsWithinWindow >= 3)
+            {
+                cout << "ALERT: IP " << entry.first
+                     << " made 3 or more failed login attempts within 15 minutes!"
+                     << endl;
+                break;
+            }
+        }
+    }
+
+    cout << "\n========== IP Address Analysis ==========" << endl;
+
+    for (auto entry : result.ipCount)
+    {
+        cout << "IP Address: " << entry.first
+             << " | Failed Attempts: " << entry.second << endl;
+
+        if (entry.second >= 5)
+        {
+            cout << "Risk Level: HIGH" << endl;
+        }
+        else if (entry.second >= 3)
+        {
+            cout << "Risk Level: MEDIUM" << endl;
+        }
+        else
+        {
+            cout << "Risk Level: LOW" << endl;
+        }
+
+        if (entry.second >= 3)
+        {
+            cout << "WARNING: Repeated failed login attempts detected!" << endl;
+            cout << "Source IP: " << entry.first << endl;
+            cout << "Attempts: " << entry.second << endl;
+        }
+    }
+
+    cout << "\n============ SECURITY SUMMARY =============\n";
+    cout << "Total Failed Login Attempts : " << result.failedLoginCount << endl;
+    cout << "Suspicious IP Addresses :" << result.suspiciousIPCount << endl;
+    cout << "Highest Risk IP :" << result.highestRiskIP << endl;
+    cout << "Highest Failed Attempts :" << result.highestAttempts << endl;
+    cout << "Overall Security Status : "
+         << determineSecurityStatus(result) << endl;
+
+    cout << "\n========== SentinelLog Analysis ==========" << endl;
+    cout << "INFO entries  :" << result.infoCount << endl;
+    cout << "WARNING entries  :" << result.warningCount << endl;
+    cout << "ERROR entries  :" << result.errorCount << endl;
+    cout << "DEBUG entries  :" << result.debugCount << endl;
+    cout << "Failed login attempts  :" << result.failedLoginCount << endl;
+
+    if (result.suspiciousIPCount > 0)
+    {
+        cout << "ALERT : Possible suspicious login activity detected!" << endl;
+    }
+
+    cout << "Unclassified entries  :" << result.unclassifiedCount << endl;
+    cout << "Total log lines  :" << result.totalLines << endl;
+    cout << "Classified entries :"
+         << result.infoCount + result.warningCount +
+                result.errorCount + result.debugCount << endl;
+
     return 0;
 }
